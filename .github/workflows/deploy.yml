@@ -197,24 +197,25 @@ jobs:
         run: |
           echo "🔄 Initiating rollback..."
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          VM_PATH="/var/www/bedrock/current"
-          BACKUP_DIR=$(ls -dt ${VM_PATH}_backup_* 2>/dev/null | head -n 1)
-          if [ -n "$BACKUP_DIR" ]; then
-            sudo rm -rf "$VM_PATH"
-            sudo mv "$BACKUP_DIR" "$VM_PATH"
-            sudo chown -R github-actions:www-data "$VM_PATH"
-            sudo systemctl reload php8.2-fpm
-            sudo systemctl reload nginx
-            echo "✅ Rollback completed"
-          fi
+            VM_PATH="/var/www/bedrock/current"
+            BACKUP_DIR=$(ls -dt ${VM_PATH}_backup_* 2>/dev/null | head -n 1)
+            if [ -n "$BACKUP_DIR" ]; then
+              sudo rm -rf "$VM_PATH"
+              sudo mv "$BACKUP_DIR" "$VM_PATH"
+              sudo chown -R github-actions:www-data "$VM_PATH"
+              sudo systemctl reload php8.2-fpm
+              sudo systemctl reload nginx
+              echo "✅ Rollback completed"
+            fi
           SSH
 
       - name: Cleanup old backups
         if: success()
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          VM_PATH="/var/www/bedrock/current"
-          cd $(dirname "$VM_PATH")
-          ls -dt ${VM_PATH}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
-          echo "✅ Cleaned up old backups"
+            VM_PATH="/var/www/bedrock/current"
+            cd $(dirname "$VM_PATH")
+            ls -dt ${VM_PATH}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+            echo "✅ Cleaned up old backups"
           SSH
+ 
