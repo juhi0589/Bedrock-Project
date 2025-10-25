@@ -51,3 +51,5 @@ See the [Bedrock installation documentation](https://roots.io/bedrock/docs/insta
 # Permission fix test 
 # Uploads dir created 
 # Permission fix complete 
+# Permission fix complete 
+# Secret fix test 
