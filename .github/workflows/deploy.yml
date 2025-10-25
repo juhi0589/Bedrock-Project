@@ -5,9 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  VM_PATH: /var/www/bedrock/current
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -119,10 +116,6 @@ jobs:
           name: sage-dist
           path: web/app/themes/sage/public/
 
-      - name: Create backup marker
-        id: backup
-        run: echo "DEPLOY_TIMESTAMP=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
-
       - name: Prepare SSH
         run: |
           mkdir -p ~/.ssh
@@ -130,18 +123,25 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Ensure target directory exists
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
+          sudo mkdir -p /var/www/bedrock/current
+          sudo chown -R github-actions:www-data /var/www/bedrock/current
+          sudo chmod 775 /var/www/bedrock/current
+          echo "✅ Target directory ready"
+          SSH
+
       - name: Create backup on VM
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
           set -e
-          cd "$VM_PATH"
-          if [ -d "web" ]; then
+          VM_PATH="/var/www/bedrock/current"
+          if [ -d "$VM_PATH/web" ]; then
             sudo cp -r "$VM_PATH" "${VM_PATH}_backup_$(date +%Y%m%d_%H%M%S)"
             echo "✅ Backup created"
           fi
           SSH
-        env:
-          VM_PATH: /var/www/bedrock/current
 
       - name: Rsync to VM
         run: |
