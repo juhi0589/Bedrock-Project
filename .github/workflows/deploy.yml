@@ -38,7 +38,6 @@ jobs:
           key: composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             composer-
-
       - name: Install Composer dependencies
         if: matrix.name == 'composer'
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
@@ -68,14 +67,12 @@ jobs:
           key: sage-npm-${{ hashFiles('**/web/app/themes/sage/package.json') }}
           restore-keys: |
             sage-npm-
-
       - name: Build Sage theme assets
         if: matrix.name == 'sage-theme'
         run: |
           cd web/app/themes/sage
           npm install
           npm run build
-
       - name: Upload Sage build artifacts
         if: matrix.name == 'sage-theme'
         uses: actions/upload-artifact@v4
@@ -143,7 +140,7 @@ jobs:
           fi
           SSH
 
-      - name: Rsync to VM
+      - name: Rsync to VM excluding sensitive dirs
         run: |
           rsync -az --delete \
             --exclude=".git/" \
@@ -173,12 +170,12 @@ jobs:
           VM_PATH="/var/www/bedrock/current"
           cd "$VM_PATH"
           
-          # Create uploads directory if missing
+          # Ensure uploads directory exists with correct perms
           sudo mkdir -p "$VM_PATH/web/app/uploads"
           sudo chown -R github-actions:www-data "$VM_PATH/web/app/uploads"
           sudo chmod -R 775 "$VM_PATH/web/app/uploads"
           
-          # Reload services
+          # Reload PHP-FPM and Nginx to pick changes
           sudo systemctl reload php8.2-fpm || sudo systemctl restart php8.2-fpm
           sudo systemctl reload nginx || sudo systemctl restart nginx
           
@@ -187,7 +184,7 @@ jobs:
 
       - name: Health check
         run: |
-          sleep 5
+          sleep 20  # Increased wait to allow services to stabilize
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "http://${{ secrets.VM_HOST }}/")
           echo "HTTP Status: $HTTP_CODE"
           if [ "$HTTP_CODE" -ne 200 ]; then
