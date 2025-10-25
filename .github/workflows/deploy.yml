@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload Composer artifacts
         if: matrix.name == 'composer'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vendor
           path: vendor/
@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload Sage build artifacts
         if: matrix.name == 'sage-theme'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sage-dist
           path: web/app/themes/sage/public/
@@ -91,7 +91,6 @@ jobs:
         with:
           node-version: '18'
 
-      # Example for WooCommerce or other plugins with build steps
       - name: Build plugin assets (if applicable)
         if: matrix.name == 'plugins'
         run: |
@@ -111,13 +110,13 @@ jobs:
           submodules: recursive
 
       - name: Download Composer artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: vendor
           path: vendor/
 
       - name: Download Sage build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: sage-dist
           path: web/app/themes/sage/public/
