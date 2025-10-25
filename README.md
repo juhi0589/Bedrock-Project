@@ -50,3 +50,4 @@ See the [Bedrock installation documentation](https://roots.io/bedrock/docs/insta
 - Subscribe to the [Roots Newsletter](https://roots.io/newsletter/)
 # Permission fix test 
 # Uploads dir created 
+# Permission fix complete 
