@@ -1,0 +1,245 @@
+name: CI/CD for Bedrock
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: composer
+          - name: sage-theme
+          - name: plugins
+    
+    steps:
+      - uses: actions/checkout@v4
+        with: 
+          submodules: recursive
+          fetch-depth: 0
+
+      # ==================== COMPOSER BUILD ====================
+      - name: Setup PHP
+        if: matrix.name == 'composer'
+        uses: shivammathur/setup-php@v2
+        with: 
+          php-version: '8.2'
+          tools: composer
+          coverage: none
+
+      - name: Cache Composer dependencies
+        if: matrix.name == 'composer'
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            composer-
+
+      - name: Install Composer dependencies
+        if: matrix.name == 'composer'
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Upload Composer artifacts
+        if: matrix.name == 'composer'
+        uses: actions/upload-artifact@v3
+        with:
+          name: vendor
+          path: vendor/
+          retention-days: 1
+
+      # ==================== SAGE THEME BUILD ====================
+      - name: Setup Node.js for Sage
+        if: matrix.name == 'sage-theme'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache Sage npm dependencies
+        if: matrix.name == 'sage-theme'
+        uses: actions/cache@v3
+        with:
+          path: |
+            web/app/themes/sage/node_modules
+            ~/.npm
+          key: sage-npm-${{ hashFiles('**/web/app/themes/sage/package-lock.json') }}
+          restore-keys: |
+            sage-npm-
+
+      - name: Build Sage theme assets
+        if: matrix.name == 'sage-theme'
+        run: |
+          cd web/app/themes/sage
+          npm ci
+          npm run build
+
+      - name: Upload Sage build artifacts
+        if: matrix.name == 'sage-theme'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sage-dist
+          path: web/app/themes/sage/public/
+          retention-days: 1
+
+      # ==================== PLUGIN BUILDS (if needed) ====================
+      - name: Setup Node.js for plugins
+        if: matrix.name == 'plugins'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Example for WooCommerce or other plugins with build steps
+      - name: Build plugin assets (if applicable)
+        if: matrix.name == 'plugins'
+        run: |
+          # Add plugin build commands here if needed
+          # Example:
+          # cd web/app/plugins/your-plugin
+          # npm ci && npm run build
+          echo "No plugin builds required currently"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - uses: actions/checkout@v4
+        with: 
+          submodules: recursive
+
+      - name: Download Composer artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: vendor
+          path: vendor/
+
+      - name: Download Sage build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: sage-dist
+          path: web/app/themes/sage/public/
+
+      - name: Create backup marker
+        id: backup
+        run: echo "DEPLOY_TIMESTAMP=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Create backup on VM
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
+          set -e
+          cd "${{ secrets.VM_PATH }}"
+          if [ -d "web" ]; then
+            sudo cp -r "${{ secrets.VM_PATH }}" "${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
+            echo "✅ Backup created: ${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
+          fi
+          SSH
+
+      - name: Rsync to VM
+        id: rsync
+        run: |
+          rsync -az --delete \
+            --exclude=".git/" \
+            --exclude=".github/" \
+            --exclude=".env" \
+            --exclude="web/app/uploads/" \
+            --exclude="node_modules/" \
+            --exclude=".editorconfig" \
+            --exclude=".gitignore" \
+            -e "ssh -i ~/.ssh/id_ed25519" \
+            ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_PATH }}/
+
+      - name: Post-deploy finalize
+        id: finalize
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
+          set -e
+          cd "${{ secrets.VM_PATH }}"
+          
+          # Set proper permissions
+          sudo chown -R www-data:www-data "${{ secrets.VM_PATH }}"
+          sudo chmod -R 755 "${{ secrets.VM_PATH }}"
+          sudo chmod -R 775 "${{ secrets.VM_PATH }}/web/app/uploads"
+          
+          # Reload services
+          sudo systemctl reload php8.2-fpm || sudo systemctl restart php8.2-fpm
+          sudo systemctl reload nginx || sudo systemctl restart nginx
+          
+          echo "✅ Deployment finalized"
+          SSH
+
+      - name: Health check
+        id: health_check
+        run: |
+          echo "Waiting for services to stabilize..."
+          sleep 5
+          
+          # Check HTTP response
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "http://${{ secrets.VM_HOST }}/")
+          echo "HTTP Status: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Health check failed with status $HTTP_CODE"
+            exit 1
+          fi
+          
+          # Check if WordPress is actually responding
+          CONTENT=$(curl -fsSL "http://${{ secrets.VM_HOST }}/" || echo "")
+          if echo "$CONTENT" | grep -q "wp-content\|wordpress\|DOCTYPE"; then
+            echo "✅ WordPress site is responding correctly"
+          else
+            echo "❌ Site is up but WordPress is not responding properly"
+            exit 1
+          fi
+
+      # ==================== ROLLBACK LOGIC ====================
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "🔄 Deployment failed, initiating rollback..."
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
+          set -e
+          BACKUP_DIR="${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
+          
+          if [ -d "$BACKUP_DIR" ]; then
+            echo "Restoring from backup: $BACKUP_DIR"
+            sudo rm -rf "${{ secrets.VM_PATH }}"
+            sudo mv "$BACKUP_DIR" "${{ secrets.VM_PATH }}"
+            sudo chown -R www-data:www-data "${{ secrets.VM_PATH }}"
+            sudo systemctl reload php8.2-fpm
+            sudo systemctl reload nginx
+            echo "✅ Rollback completed successfully"
+          else
+            echo "❌ No backup found for rollback"
+          fi
+          SSH
+
+      - name: Cleanup old backups
+        if: success()
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
+          # Keep only last 3 backups
+          cd $(dirname "${{ secrets.VM_PATH }}")
+          ls -dt ${{ secrets.VM_PATH }}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+          echo "✅ Cleaned up old backups"
+          SSH
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Site: http://${{ secrets.VM_HOST }}/"
+            echo "📦 Deployed at: $(date)"
+          else
+            echo "❌ Deployment failed and was rolled back"
+          fi
