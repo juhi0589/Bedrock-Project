@@ -189,7 +189,7 @@ jobs:
           echo "HTTP Status: $HTTP_CODE"
           if [ "$HTTP_CODE" -ne 200 ]; then
             echo "❌ Health check failed"
-            curl -v "http://${{ secrets.VM_HOST }}/wp/" || true
+            curl -v "http://${{ secrets.VM_HOST }}/wp/wp-admin/" || true
             exit 1
           fi
           echo "✅ WordPress is responding (HTTP $HTTP_CODE)"
