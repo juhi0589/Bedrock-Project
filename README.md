@@ -49,3 +49,4 @@ See the [Bedrock installation documentation](https://roots.io/bedrock/docs/insta
 - Read the [Roots Blog](https://roots.io/blog/)
 - Subscribe to the [Roots Newsletter](https://roots.io/newsletter/)
 # Permission fix test 
+# Uploads dir created 
