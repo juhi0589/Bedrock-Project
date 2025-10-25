@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  VM_PATH: /var/www/bedrock/current
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -131,12 +134,14 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
           set -e
-          cd "${{ secrets.VM_PATH }}"
+          cd "$VM_PATH"
           if [ -d "web" ]; then
-            sudo cp -r "${{ secrets.VM_PATH }}" "${{ secrets.VM_PATH }}_backup_$(date +%Y%m%d_%H%M%S)"
+            sudo cp -r "$VM_PATH" "${VM_PATH}_backup_$(date +%Y%m%d_%H%M%S)"
             echo "✅ Backup created"
           fi
           SSH
+        env:
+          VM_PATH: /var/www/bedrock/current
 
       - name: Rsync to VM
         run: |
@@ -147,16 +152,17 @@ jobs:
             --exclude="web/app/uploads/" \
             --exclude="node_modules/" \
             -e "ssh -i ~/.ssh/id_rsa" \
-            ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_PATH }}/
+            ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/var/www/bedrock/current/
 
       - name: Fix permissions after rsync
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
           set -e
+          VM_PATH="/var/www/bedrock/current"
           echo "🔧 Fixing ownership and permissions..."
-          sudo chown -R github-actions:www-data "${{ secrets.VM_PATH }}"
-          sudo find "${{ secrets.VM_PATH }}" -type d -exec chmod 775 {} \;
-          sudo find "${{ secrets.VM_PATH }}" -type f -exec chmod 664 {} \;
+          sudo chown -R github-actions:www-data "$VM_PATH"
+          sudo find "$VM_PATH" -type d -exec chmod 775 {} \;
+          sudo find "$VM_PATH" -type f -exec chmod 664 {} \;
           echo "✅ Permissions fixed"
           SSH
 
@@ -164,12 +170,13 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
           set -e
-          cd "${{ secrets.VM_PATH }}"
+          VM_PATH="/var/www/bedrock/current"
+          cd "$VM_PATH"
           
           # Create uploads directory if missing
-          sudo mkdir -p "${{ secrets.VM_PATH }}/web/app/uploads"
-          sudo chown -R github-actions:www-data "${{ secrets.VM_PATH }}/web/app/uploads"
-          sudo chmod -R 775 "${{ secrets.VM_PATH }}/web/app/uploads"
+          sudo mkdir -p "$VM_PATH/web/app/uploads"
+          sudo chown -R github-actions:www-data "$VM_PATH/web/app/uploads"
+          sudo chmod -R 775 "$VM_PATH/web/app/uploads"
           
           # Reload services
           sudo systemctl reload php8.2-fpm || sudo systemctl restart php8.2-fpm
@@ -194,11 +201,12 @@ jobs:
         run: |
           echo "🔄 Initiating rollback..."
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          BACKUP_DIR=$(ls -dt ${{ secrets.VM_PATH }}_backup_* 2>/dev/null | head -n 1)
+          VM_PATH="/var/www/bedrock/current"
+          BACKUP_DIR=$(ls -dt ${VM_PATH}_backup_* 2>/dev/null | head -n 1)
           if [ -n "$BACKUP_DIR" ]; then
-            sudo rm -rf "${{ secrets.VM_PATH }}"
-            sudo mv "$BACKUP_DIR" "${{ secrets.VM_PATH }}"
-            sudo chown -R github-actions:www-data "${{ secrets.VM_PATH }}"
+            sudo rm -rf "$VM_PATH"
+            sudo mv "$BACKUP_DIR" "$VM_PATH"
+            sudo chown -R github-actions:www-data "$VM_PATH"
             sudo systemctl reload php8.2-fpm
             sudo systemctl reload nginx
             echo "✅ Rollback completed"
@@ -209,7 +217,8 @@ jobs:
         if: success()
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          cd $(dirname "${{ secrets.VM_PATH }}")
-          ls -dt ${{ secrets.VM_PATH }}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+          VM_PATH="/var/www/bedrock/current"
+          cd $(dirname "$VM_PATH")
+          ls -dt ${VM_PATH}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
           echo "✅ Cleaned up old backups"
           SSH
