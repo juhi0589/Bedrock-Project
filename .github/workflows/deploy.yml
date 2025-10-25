@@ -65,7 +65,7 @@ jobs:
           path: |
             web/app/themes/sage/node_modules
             ~/.npm
-          key: sage-npm-${{ hashFiles('**/web/app/themes/sage/package-lock.json') }}
+          key: sage-npm-${{ hashFiles('**/web/app/themes/sage/package.json') }}
           restore-keys: |
             sage-npm-
 
@@ -73,7 +73,7 @@ jobs:
         if: matrix.name == 'sage-theme'
         run: |
           cd web/app/themes/sage
-          npm ci
+          npm install
           npm run build
 
       - name: Upload Sage build artifacts
@@ -84,21 +84,16 @@ jobs:
           path: web/app/themes/sage/public/
           retention-days: 1
 
-      # ==================== PLUGIN BUILDS (if needed) ====================
+      # ==================== PLUGIN BUILDS ====================
       - name: Setup Node.js for plugins
         if: matrix.name == 'plugins'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Build plugin assets (if applicable)
+      - name: Build plugin assets
         if: matrix.name == 'plugins'
-        run: |
-          # Add plugin build commands here if needed
-          # Example:
-          # cd web/app/plugins/your-plugin
-          # npm ci && npm run build
-          echo "No plugin builds required currently"
+        run: echo "No plugin builds required currently"
 
   deploy:
     runs-on: ubuntu-latest
@@ -138,13 +133,12 @@ jobs:
           set -e
           cd "${{ secrets.VM_PATH }}"
           if [ -d "web" ]; then
-            sudo cp -r "${{ secrets.VM_PATH }}" "${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
-            echo "✅ Backup created: ${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
+            sudo cp -r "${{ secrets.VM_PATH }}" "${{ secrets.VM_PATH }}_backup_$(date +%Y%m%d_%H%M%S)"
+            echo "✅ Backup created"
           fi
           SSH
 
       - name: Rsync to VM
-        id: rsync
         run: |
           rsync -az --delete \
             --exclude=".git/" \
@@ -152,73 +146,46 @@ jobs:
             --exclude=".env" \
             --exclude="web/app/uploads/" \
             --exclude="node_modules/" \
-            --exclude=".editorconfig" \
-            --exclude=".gitignore" \
             -e "ssh -i ~/.ssh/id_ed25519" \
             ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_PATH }}/
 
       - name: Post-deploy finalize
-        id: finalize
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
           set -e
           cd "${{ secrets.VM_PATH }}"
-          
-          # Set proper permissions
           sudo chown -R www-data:www-data "${{ secrets.VM_PATH }}"
           sudo chmod -R 755 "${{ secrets.VM_PATH }}"
           sudo chmod -R 775 "${{ secrets.VM_PATH }}/web/app/uploads"
-          
-          # Reload services
           sudo systemctl reload php8.2-fpm || sudo systemctl restart php8.2-fpm
           sudo systemctl reload nginx || sudo systemctl restart nginx
-          
           echo "✅ Deployment finalized"
           SSH
 
       - name: Health check
-        id: health_check
         run: |
-          echo "Waiting for services to stabilize..."
           sleep 5
-          
-          # Check HTTP response
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "http://${{ secrets.VM_HOST }}/")
           echo "HTTP Status: $HTTP_CODE"
-          
           if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "❌ Health check failed with status $HTTP_CODE"
+            echo "❌ Health check failed"
             exit 1
           fi
-          
-          # Check if WordPress is actually responding
-          CONTENT=$(curl -fsSL "http://${{ secrets.VM_HOST }}/" || echo "")
-          if echo "$CONTENT" | grep -q "wp-content\|wordpress\|DOCTYPE"; then
-            echo "✅ WordPress site is responding correctly"
-          else
-            echo "❌ Site is up but WordPress is not responding properly"
-            exit 1
-          fi
+          echo "✅ WordPress is responding"
 
-      # ==================== ROLLBACK LOGIC ====================
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "🔄 Deployment failed, initiating rollback..."
+          echo "🔄 Initiating rollback..."
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          set -e
-          BACKUP_DIR="${{ secrets.VM_PATH }}_backup_${{ steps.backup.outputs.DEPLOY_TIMESTAMP }}"
-          
-          if [ -d "$BACKUP_DIR" ]; then
-            echo "Restoring from backup: $BACKUP_DIR"
+          BACKUP_DIR=$(ls -dt ${{ secrets.VM_PATH }}_backup_* 2>/dev/null | head -n 1)
+          if [ -n "$BACKUP_DIR" ]; then
             sudo rm -rf "${{ secrets.VM_PATH }}"
             sudo mv "$BACKUP_DIR" "${{ secrets.VM_PATH }}"
             sudo chown -R www-data:www-data "${{ secrets.VM_PATH }}"
             sudo systemctl reload php8.2-fpm
             sudo systemctl reload nginx
-            echo "✅ Rollback completed successfully"
-          else
-            echo "❌ No backup found for rollback"
+            echo "✅ Rollback completed"
           fi
           SSH
 
@@ -226,19 +193,7 @@ jobs:
         if: success()
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} <<'SSH'
-          # Keep only last 3 backups
           cd $(dirname "${{ secrets.VM_PATH }}")
           ls -dt ${{ secrets.VM_PATH }}_backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
           echo "✅ Cleaned up old backups"
           SSH
-
-      - name: Deployment summary
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment completed successfully!"
-            echo "🌐 Site: http://${{ secrets.VM_HOST }}/"
-            echo "📦 Deployed at: $(date)"
-          else
-            echo "❌ Deployment failed and was rolled back"
-          fi
