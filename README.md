@@ -5,16 +5,16 @@ Project Structure
 Bedrock - Modern WordPress
 Composer-managed PHP dependencies
 
-Secure, environment-driven configuration with .env and /config
+Secure, environment-driven configuration via .env and /config
 
-Clean web root at /web
+Clean web root located at /web
 
 WordPress core installed via Composer in /web/wp
 
-Monitoring & Observability
+Monitoring & Observability Stack
 Docker Compose stack includes:
 
-Prometheus (metrics DB)
+Prometheus (metrics database)
 
 Node Exporter (system metrics)
 
@@ -22,7 +22,7 @@ Blackbox Exporter (HTTP probe)
 
 Grafana (dashboards)
 
-Dashboards auto-provision and load at Grafana startup
+Dashboards are auto-provisioned and load automatically on Grafana startup
 
 Quick Start
 Clone and prepare the WordPress site:
@@ -33,12 +33,12 @@ cd Bedrock-Project
 composer install
 cp .env.example .env
 # Edit .env with your environment variables
-Serve the /web directory using Nginx, Apache, or your web server.
+Serve the /web directory using Nginx, Apache, or your preferred web server.
 
 Deployment on Production Server (GCP VM / Linux Host)
 Install Docker and Docker Compose
 
-Clone the repo and start monitoring stack:
+Clone repo and start monitoring stack:
 
 bash
 git clone https://github.com/juhi0589/Bedrock-Project.git
@@ -46,62 +46,60 @@ cd Bedrock-Project/monitoring
 sudo docker compose up -d
 Open firewall ports for monitoring dashboards:
 
-Grafana (default at port 3000)
+Grafana (default port 3000)
 
-Prometheus (default at port 9090)
+Prometheus (default port 9090)
 
-Access services:
+Access monitoring services:
 
 Grafana: http://<server-ip>:3000
 
 Prometheus: http://<server-ip>:9090
 
-Example for your VM IP 34.6.110.173:
+Example for your VM IP (34.6.110.173):
 
 Grafana: http://34.6.110.173:3000
 
 Prometheus: http://34.6.110.173:9090
 
 CI/CD Caching Strategy and Deployment
-Composer caches dependencies based on the composer.lock hash.
+Composer dependencies cached based on composer.lock hash
 
-npm caches for Sage theme based on the package.json hash.
+npm dependencies for Sage theme cached based on package.json hash
 
-Cache keys refresh automatically on dependency changes.
+Cache keys refresh automatically on dependency changes
 
-Deploy workflows:
+Deployment workflow:
 
-Run composer install in build job
+Runs composer install during build to cache vendor/
 
-Cache and upload artifacts (vendor/ and web/app/themes/sage/public/)
+Builds Sage theme npm assets and caches node_modules
 
-Rsync code excluding sensitive files
+Downloads cached artifacts and rsyncs code excluding sensitive files
 
-Run composer install on production server to install WordPress core (web/wp)
+Runs composer install on production server to install WordPress core (web/wp)
 
-Set correct permissions
+Fixes file/directory permissions and restarts PHP-FPM/nginx
 
-Reload PHP-FPM and nginx
+Runs healthcheck endpoint to confirm deployment success
 
-Run healthcheck endpoint in CI to confirm deployment success
+Rolls back on failure from backup copies
 
-Rollback on failure using backups
+Managing Links and Plugins via WordPress Admin UI
+Login to the WordPress admin panel at /wp/wp-login.php (e.g., http://34.6.110.173/wp/wp-login.php).
 
-Managing Links and Plugins in WordPress Admin UI
-Login at /wp/wp-login.php (e.g., http://34.6.110.173/wp/wp-login.php).
+Managing Links:
 
-Links:
+Navigate to Appearance > Menus to create or edit site navigation
 
-Go to Appearance > Menus to edit site navigation.
+Edit Pages and Posts to update internal/external links
 
-Edit Pages and Posts for internal and external links.
+Managing Plugins:
 
-Plugins:
+Visit Plugins > Installed Plugins
 
-Go to Plugins > Installed Plugins.
+Activate, deactivate, update, or remove plugins
 
-Activate/deactivate/update plugins.
+Add new plugins via the Add New button from the admin UI
 
-Add new plugins via Add New button.
-
-Ensure compatibility and deactivate any causing errors.
+Ensure compatibility and disable any plugins causing issues
