@@ -1,97 +1,83 @@
 Bedrock-Project
-A modern, production-ready WordPress solution powered by Roots Bedrock, Composer, and a plug-and-play observability stack (Prometheus, Node Exporter, Blackbox Exporter, Grafana) via Docker Compose.
+A modern WordPress starter project using Roots Bedrock and a Docker Compose-based monitoring stack (Prometheus, Node Exporter, Blackbox Exporter, Grafana), deployable on cloud VMs or local machines.
 
 📦 Project Structure
-Bedrock: Modern WordPress project boilerplate with secure, environment-based configuration and Composer integration.
+Bedrock: Modern WordPress with secure, environment-driven configuration (via .env and /config).
 
-Monitoring: Complete local observability setup; auto-provisioned dashboards for system health and app endpoints.
+Monitoring: Automated Docker Compose stack for infrastructure and HTTP health, with auto-provisioned Grafana dashboards.
 
-Part 1: WordPress Bedrock Setup
-Features
-Secure and modern folder structure for WordPress.
+Part 1: WordPress Bedrock App
+Features:
 
-Composer-based management of plugins, themes, and WordPress core.
+Composer-managed dependencies
 
-Environmental configuration using .env files and /config overrides.
+Clean config and secure file structure
 
-Web root served from /web.
+Modern web root at /web
 
-Getting Started
-Clone & Enter Repo
+Quick start:
 
 text
 git clone https://github.com/juhi0589/Bedrock-Project.git
 cd Bedrock-Project
-Install Dependencies
-
-text
 composer install
-Environment Setup
+cp .env.example .env  # Fill in your info
+Serve the /web directory using Nginx, Apache, or your preferred web server.
 
-Copy .env.example to .env.
+Part 2: Monitoring & Observability (GCP VM/Cloud)
+Stack:
 
-Edit .env with your database/access credentials and WordPress URLs.
+Prometheus (metrics DB)
 
-Document Root
+Node Exporter (system metrics)
 
-Bedrock serves the site from the /web folder (e.g., for Apache/Nginx, set webroot to [project]/web).
+Blackbox Exporter (HTTP probe)
 
-Further Configuration
+Grafana (dashboards)
 
-Edit config/application.php and view Bedrock documentation for more.
+Setup Guide (on your GCP VM or any Linux host):
 
-Part 2: Monitoring & Observability Stack
-Everything you need to monitor your application stack out-of-the-box!
-
-Stack Components
-Prometheus: Main metrics collector and time series database.
-
-Node Exporter: System and hardware metrics (CPU, RAM, disk).
-
-Blackbox Exporter: Probe HTTP endpoint health.
-
-Grafana: Dashboard visualizations, auto-provisioned.
-
-Quickstart
-Go to Monitoring Directory
+Install Docker and Docker Compose:
 
 text
-cd monitoring
-Start Monitoring Services
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-compose-plugin
+Clone and enter the monitoring folder:
 
 text
-docker compose up -d
-Access the Web UIs
+git clone https://github.com/juhi0589/Bedrock-Project.git
+cd Bedrock-Project/monitoring
+Start all services with Docker Compose (requires sudo unless your user is in the docker group):
 
-Prometheus: http://localhost:9090
+text
+sudo docker compose up -d
+Access the services (from anywhere if GCP firewall is open):
 
-Grafana: http://localhost:3000 (admin / admin)
+Grafana: http://<VM-IP>:3000
 
-Dashboards & Configuration
-Pre-provisioned dashboards for:
+Prometheus: http://<VM-IP>:9090
 
-Node system metrics (CPU, memory)
+Default Grafana login: admin / admin (change this after first login).
 
-Application HTTP health (probe_success)
+🔥 Note on Firewall/Cloud Access
+On GCP, firewall rules must allow inbound TCP on 3000 (Grafana) and 9090 (Prometheus).
 
-All dashboards are auto-loaded in Grafana under Dashboards > Manage.
+See the Google Cloud Console "VPC network > Firewall" for port settings.
 
-To check or edit configuration:
+Example: Grafana at http://34.6.110.173:3000 and Prometheus at http://34.6.110.173:9090.
 
-Prometheus: monitoring/prometheus.yml
+💡 Tips
+Use sudo with all Docker/Docker Compose commands unless your user is explicitly added to the docker group.
 
-Blackbox Exporter: monitoring/blackbox.yml
+To avoid sudo each time: sudo usermod -aG docker $USER then log out and back in.
 
-Grafana dashboards: monitoring/dashboards/
+📊 Dashboards & Provisioning
+Dashboards (JSON) and provisioning YAMLs are under monitoring/dashboards/ and monitoring/provisioning/
 
-Grafana provisioning: monitoring/provisioning/dashboards/dashboard.yml (dashboard loader),
-monitoring/provisioning/datasources/prometheus.yml (optional, datasource loader)
+Metrics, Node, Blackbox, and HTTP health are preconfigured
 
-🙋 FAQ & Help
-Where do I run composer? In the root directory after cloning.
-
-Where do I start monitoring? In the /monitoring folder.
-
-Is data source auto-provisioned? Yes, if provisioning/datasources/prometheus.yml is present.
-
-What about secrets? Never commit your filled .env or any real secrets to Git!
+All dashboards auto-load in Grafana at first launch
