@@ -1,31 +1,18 @@
 Bedrock-Project
 A modern WordPress starter project using Roots Bedrock and a Docker Compose-based monitoring stack (Prometheus, Node Exporter, Blackbox Exporter, Grafana), deployable on cloud VMs or local machines.
 
-📦 Project Structure
-Bedrock: Modern WordPress with secure, environment-driven configuration (via .env and /config).
+Project Structure
+Bedrock - Modern WordPress
+Composer-managed PHP dependencies
 
-Monitoring: Automated Docker Compose stack for infrastructure and HTTP health, with auto-provisioned Grafana dashboards.
+Secure, environment-driven configuration with .env and /config
 
-Part 1: WordPress Bedrock App
-Features:
+Clean web root at /web
 
-Composer-managed dependencies
+WordPress core installed via Composer in /web/wp
 
-Clean config and secure file structure
-
-Modern web root at /web
-
-Quick start:
-
-text
-git clone https://github.com/juhi0589/Bedrock-Project.git
-cd Bedrock-Project
-composer install
-cp .env.example .env  # Fill in your info
-Serve the /web directory using Nginx, Apache, or your preferred web server.
-
-Part 2: Monitoring & Observability (GCP VM/Cloud)
-Stack:
+Monitoring & Observability
+Docker Compose stack includes:
 
 Prometheus (metrics DB)
 
@@ -35,49 +22,86 @@ Blackbox Exporter (HTTP probe)
 
 Grafana (dashboards)
 
-Setup Guide (on your GCP VM or any Linux host):
+Dashboards auto-provision and load at Grafana startup
 
-Install Docker and Docker Compose:
+Quick Start
+Clone and prepare the WordPress site:
 
-text
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-compose-plugin
-Clone and enter the monitoring folder:
+bash
+git clone https://github.com/juhi0589/Bedrock-Project.git
+cd Bedrock-Project
+composer install
+cp .env.example .env
+# Edit .env with your environment variables
+Serve the /web directory using Nginx, Apache, or your web server.
 
-text
+Deployment on Production Server (GCP VM / Linux Host)
+Install Docker and Docker Compose
+
+Clone the repo and start monitoring stack:
+
+bash
 git clone https://github.com/juhi0589/Bedrock-Project.git
 cd Bedrock-Project/monitoring
-Start all services with Docker Compose (requires sudo unless your user is in the docker group):
-
-text
 sudo docker compose up -d
-Access the services (from anywhere if GCP firewall is open):
+Open firewall ports for monitoring dashboards:
 
-Grafana: http://<VM-IP>:3000
+Grafana (default at port 3000)
 
-Prometheus: http://<VM-IP>:9090
+Prometheus (default at port 9090)
 
-Default Grafana login: admin / admin (change this after first login).
+Access services:
 
-🔥 Note on Firewall/Cloud Access
-On GCP, firewall rules must allow inbound TCP on 3000 (Grafana) and 9090 (Prometheus).
+Grafana: http://<server-ip>:3000
 
-See the Google Cloud Console "VPC network > Firewall" for port settings.
+Prometheus: http://<server-ip>:9090
 
-Example: Grafana at http://34.6.110.173:3000 and Prometheus at http://34.6.110.173:9090.
+Example for your VM IP 34.6.110.173:
 
-💡 Tips
-Use sudo with all Docker/Docker Compose commands unless your user is explicitly added to the docker group.
+Grafana: http://34.6.110.173:3000
 
-To avoid sudo each time: sudo usermod -aG docker $USER then log out and back in.
+Prometheus: http://34.6.110.173:9090
 
-📊 Dashboards & Provisioning
-Dashboards (JSON) and provisioning YAMLs are under monitoring/dashboards/ and monitoring/provisioning/
+CI/CD Caching Strategy and Deployment
+Composer caches dependencies based on the composer.lock hash.
 
-Metrics, Node, Blackbox, and HTTP health are preconfigured
+npm caches for Sage theme based on the package.json hash.
 
-All dashboards auto-load in Grafana at first launch
+Cache keys refresh automatically on dependency changes.
+
+Deploy workflows:
+
+Run composer install in build job
+
+Cache and upload artifacts (vendor/ and web/app/themes/sage/public/)
+
+Rsync code excluding sensitive files
+
+Run composer install on production server to install WordPress core (web/wp)
+
+Set correct permissions
+
+Reload PHP-FPM and nginx
+
+Run healthcheck endpoint in CI to confirm deployment success
+
+Rollback on failure using backups
+
+Managing Links and Plugins in WordPress Admin UI
+Login at /wp/wp-login.php (e.g., http://34.6.110.173/wp/wp-login.php).
+
+Links:
+
+Go to Appearance > Menus to edit site navigation.
+
+Edit Pages and Posts for internal and external links.
+
+Plugins:
+
+Go to Plugins > Installed Plugins.
+
+Activate/deactivate/update plugins.
+
+Add new plugins via Add New button.
+
+Ensure compatibility and deactivate any causing errors.
