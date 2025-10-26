@@ -1,55 +1,97 @@
-<p align="center">
-  <a href="https://roots.io/bedrock/">
-    <img alt="Bedrock" src="https://cdn.roots.io/app/uploads/logo-bedrock.svg" height="100">
-  </a>
-</p>
+Bedrock-Project
+A modern, production-ready WordPress solution powered by Roots Bedrock, Composer, and a plug-and-play observability stack (Prometheus, Node Exporter, Blackbox Exporter, Grafana) via Docker Compose.
 
-<p align="center">
-  <a href="https://packagist.org/packages/roots/bedrock"><img alt="Packagist Installs" src="https://img.shields.io/packagist/dt/roots/bedrock?label=projects%20created&colorB=2b3072&colorA=525ddc&style=flat-square"></a>
-  <a href="https://packagist.org/packages/roots/wordpress"><img alt="roots/wordpress Packagist Downloads" src="https://img.shields.io/packagist/dt/roots/wordpress?label=roots%2Fwordpress%20downloads&logo=roots&logoColor=white&colorB=2b3072&colorA=525ddc&style=flat-square"></a>
-  <img src="https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/roots/bedrock/master/composer.json&label=wordpress&logo=roots&logoColor=white&query=$.require[%22roots/wordpress%22]&colorB=2b3072&colorA=525ddc&style=flat-square">
-  <a href="https://github.com/roots/bedrock/actions/workflows/ci.yml"><img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/roots/bedrock/ci.yml?branch=master&logo=github&label=CI&style=flat-square"></a>
-  <a href="https://twitter.com/rootswp"><img alt="Follow Roots" src="https://img.shields.io/badge/follow%20@rootswp-1da1f2?logo=twitter&logoColor=ffffff&message=&style=flat-square"></a>
-  <a href="https://github.com/sponsors/roots"><img src="https://img.shields.io/badge/sponsor%20roots-525ddc?logo=github&style=flat-square&logoColor=ffffff&message=" alt="Sponsor Roots"></a>
-</p>
+📦 Project Structure
+Bedrock: Modern WordPress project boilerplate with secure, environment-based configuration and Composer integration.
 
-<p align="center">WordPress boilerplate with Composer, easier configuration, and an improved folder structure</p>
+Monitoring: Complete local observability setup; auto-provisioned dashboards for system health and app endpoints.
 
-<p align="center">
-  <a href="https://roots.io/bedrock/">Website</a> &nbsp;&nbsp; <a href="https://roots.io/bedrock/docs/installation/">Documentation</a> &nbsp;&nbsp; <a href="https://github.com/roots/bedrock/releases">Releases</a> &nbsp;&nbsp; <a href="https://discourse.roots.io/">Community</a>
-</p>
+Part 1: WordPress Bedrock Setup
+Features
+Secure and modern folder structure for WordPress.
 
-## Support us
+Composer-based management of plugins, themes, and WordPress core.
 
-We're dedicated to pushing modern WordPress development forward through our open source projects, and we need your support to keep building. You can support our work by purchasing [Radicle](https://roots.io/radicle/), our recommended WordPress stack, or by [sponsoring us on GitHub](https://github.com/sponsors/roots). Every contribution directly helps us create better tools for the WordPress ecosystem.
+Environmental configuration using .env files and /config overrides.
 
-### Sponsors
+Web root served from /web.
 
-<a href="https://carrot.com/"><img src="https://cdn.roots.io/app/uploads/carrot.svg" alt="Carrot" width="120" height="90"></a> <a href="https://wordpress.com/"><img src="https://cdn.roots.io/app/uploads/wordpress.svg" alt="WordPress.com" width="120" height="90"></a> <a href="https://www.itineris.co.uk/"><img src="https://cdn.roots.io/app/uploads/itineris.svg" alt="Itineris" width="120" height="90"></a> <a href="https://bonsai.so/"><img src="https://cdn.roots.io/app/uploads/bonsai.svg" alt="Bonsai" width="120" height="90"></a>
+Getting Started
+Clone & Enter Repo
 
-## Overview
+text
+git clone https://github.com/juhi0589/Bedrock-Project.git
+cd Bedrock-Project
+Install Dependencies
 
-Bedrock is a WordPress boilerplate for developers that want to manage their projects with Git and Composer. Much of the philosophy behind Bedrock is inspired by the [Twelve-Factor App](http://12factor.net/) methodology, including the [WordPress specific version](https://roots.io/twelve-factor-wordpress/).
+text
+composer install
+Environment Setup
 
-- Better folder structure
-- Dependency management with [Composer](https://getcomposer.org)
-- Easy WordPress configuration with environment specific files
-- Environment variables with [Dotenv](https://github.com/vlucas/phpdotenv)
-- Autoloader for mu-plugins (use regular plugins as mu-plugins)
+Copy .env.example to .env.
 
-## Getting Started
+Edit .env with your database/access credentials and WordPress URLs.
 
-See the [Bedrock installation documentation](https://roots.io/bedrock/docs/installation/).
+Document Root
 
-## Stay Connected
+Bedrock serves the site from the /web folder (e.g., for Apache/Nginx, set webroot to [project]/web).
 
-- Join us on Discord by [sponsoring us on GitHub](https://github.com/sponsors/roots)
-- Participate on [Roots Discourse](https://discourse.roots.io/)
-- Follow [@rootswp on Twitter](https://twitter.com/rootswp)
-- Read the [Roots Blog](https://roots.io/blog/)
-- Subscribe to the [Roots Newsletter](https://roots.io/newsletter/)
-# Permission fix test 
-# Uploads dir created 
-# Permission fix complete 
-# Permission fix complete 
-# Secret fix test 
+Further Configuration
+
+Edit config/application.php and view Bedrock documentation for more.
+
+Part 2: Monitoring & Observability Stack
+Everything you need to monitor your application stack out-of-the-box!
+
+Stack Components
+Prometheus: Main metrics collector and time series database.
+
+Node Exporter: System and hardware metrics (CPU, RAM, disk).
+
+Blackbox Exporter: Probe HTTP endpoint health.
+
+Grafana: Dashboard visualizations, auto-provisioned.
+
+Quickstart
+Go to Monitoring Directory
+
+text
+cd monitoring
+Start Monitoring Services
+
+text
+docker compose up -d
+Access the Web UIs
+
+Prometheus: http://localhost:9090
+
+Grafana: http://localhost:3000 (admin / admin)
+
+Dashboards & Configuration
+Pre-provisioned dashboards for:
+
+Node system metrics (CPU, memory)
+
+Application HTTP health (probe_success)
+
+All dashboards are auto-loaded in Grafana under Dashboards > Manage.
+
+To check or edit configuration:
+
+Prometheus: monitoring/prometheus.yml
+
+Blackbox Exporter: monitoring/blackbox.yml
+
+Grafana dashboards: monitoring/dashboards/
+
+Grafana provisioning: monitoring/provisioning/dashboards/dashboard.yml (dashboard loader),
+monitoring/provisioning/datasources/prometheus.yml (optional, datasource loader)
+
+🙋 FAQ & Help
+Where do I run composer? In the root directory after cloning.
+
+Where do I start monitoring? In the /monitoring folder.
+
+Is data source auto-provisioned? Yes, if provisioning/datasources/prometheus.yml is present.
+
+What about secrets? Never commit your filled .env or any real secrets to Git!
