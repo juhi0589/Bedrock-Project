@@ -185,7 +185,7 @@ jobs:
       - name: Health check
         run: |
           sleep 30
-          HTTP_CODE=$(curl -X GET -o /dev/null -s -w "%{http_code}" "http://${{ secrets.VM_HOST }}/wp/wp-admin/")
+          HTTP_CODE=$(curl -X GET -o /dev/null -s -w "%{http_code}" "http://${{ secrets.VM_HOST }}/")
           echo "HTTP Status: $HTTP_CODE"
           if [ "$HTTP_CODE" -ne 200 ]; then
             echo "❌ Health check failed"
