@@ -1,55 +1,83 @@
-<p align="center">
-  <a href="https://roots.io/bedrock/">
-    <img alt="Bedrock" src="https://cdn.roots.io/app/uploads/logo-bedrock.svg" height="100">
-  </a>
-</p>
+Bedrock-Project
+A modern WordPress starter project using Roots Bedrock and a Docker Compose-based monitoring stack (Prometheus, Node Exporter, Blackbox Exporter, Grafana), deployable on cloud VMs or local machines.
 
-<p align="center">
-  <a href="https://packagist.org/packages/roots/bedrock"><img alt="Packagist Installs" src="https://img.shields.io/packagist/dt/roots/bedrock?label=projects%20created&colorB=2b3072&colorA=525ddc&style=flat-square"></a>
-  <a href="https://packagist.org/packages/roots/wordpress"><img alt="roots/wordpress Packagist Downloads" src="https://img.shields.io/packagist/dt/roots/wordpress?label=roots%2Fwordpress%20downloads&logo=roots&logoColor=white&colorB=2b3072&colorA=525ddc&style=flat-square"></a>
-  <img src="https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/roots/bedrock/master/composer.json&label=wordpress&logo=roots&logoColor=white&query=$.require[%22roots/wordpress%22]&colorB=2b3072&colorA=525ddc&style=flat-square">
-  <a href="https://github.com/roots/bedrock/actions/workflows/ci.yml"><img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/roots/bedrock/ci.yml?branch=master&logo=github&label=CI&style=flat-square"></a>
-  <a href="https://twitter.com/rootswp"><img alt="Follow Roots" src="https://img.shields.io/badge/follow%20@rootswp-1da1f2?logo=twitter&logoColor=ffffff&message=&style=flat-square"></a>
-  <a href="https://github.com/sponsors/roots"><img src="https://img.shields.io/badge/sponsor%20roots-525ddc?logo=github&style=flat-square&logoColor=ffffff&message=" alt="Sponsor Roots"></a>
-</p>
+📦 Project Structure
+Bedrock: Modern WordPress with secure, environment-driven configuration (via .env and /config).
 
-<p align="center">WordPress boilerplate with Composer, easier configuration, and an improved folder structure</p>
+Monitoring: Automated Docker Compose stack for infrastructure and HTTP health, with auto-provisioned Grafana dashboards.
 
-<p align="center">
-  <a href="https://roots.io/bedrock/">Website</a> &nbsp;&nbsp; <a href="https://roots.io/bedrock/docs/installation/">Documentation</a> &nbsp;&nbsp; <a href="https://github.com/roots/bedrock/releases">Releases</a> &nbsp;&nbsp; <a href="https://discourse.roots.io/">Community</a>
-</p>
+Part 1: WordPress Bedrock App
+Features:
 
-## Support us
+Composer-managed dependencies
 
-We're dedicated to pushing modern WordPress development forward through our open source projects, and we need your support to keep building. You can support our work by purchasing [Radicle](https://roots.io/radicle/), our recommended WordPress stack, or by [sponsoring us on GitHub](https://github.com/sponsors/roots). Every contribution directly helps us create better tools for the WordPress ecosystem.
+Clean config and secure file structure
 
-### Sponsors
+Modern web root at /web
 
-<a href="https://carrot.com/"><img src="https://cdn.roots.io/app/uploads/carrot.svg" alt="Carrot" width="120" height="90"></a> <a href="https://wordpress.com/"><img src="https://cdn.roots.io/app/uploads/wordpress.svg" alt="WordPress.com" width="120" height="90"></a> <a href="https://www.itineris.co.uk/"><img src="https://cdn.roots.io/app/uploads/itineris.svg" alt="Itineris" width="120" height="90"></a> <a href="https://bonsai.so/"><img src="https://cdn.roots.io/app/uploads/bonsai.svg" alt="Bonsai" width="120" height="90"></a>
+Quick start:
 
-## Overview
+text
+git clone https://github.com/juhi0589/Bedrock-Project.git
+cd Bedrock-Project
+composer install
+cp .env.example .env  # Fill in your info
+Serve the /web directory using Nginx, Apache, or your preferred web server.
 
-Bedrock is a WordPress boilerplate for developers that want to manage their projects with Git and Composer. Much of the philosophy behind Bedrock is inspired by the [Twelve-Factor App](http://12factor.net/) methodology, including the [WordPress specific version](https://roots.io/twelve-factor-wordpress/).
+Part 2: Monitoring & Observability (GCP VM/Cloud)
+Stack:
 
-- Better folder structure
-- Dependency management with [Composer](https://getcomposer.org)
-- Easy WordPress configuration with environment specific files
-- Environment variables with [Dotenv](https://github.com/vlucas/phpdotenv)
-- Autoloader for mu-plugins (use regular plugins as mu-plugins)
+Prometheus (metrics DB)
 
-## Getting Started
+Node Exporter (system metrics)
 
-See the [Bedrock installation documentation](https://roots.io/bedrock/docs/installation/).
+Blackbox Exporter (HTTP probe)
 
-## Stay Connected
+Grafana (dashboards)
 
-- Join us on Discord by [sponsoring us on GitHub](https://github.com/sponsors/roots)
-- Participate on [Roots Discourse](https://discourse.roots.io/)
-- Follow [@rootswp on Twitter](https://twitter.com/rootswp)
-- Read the [Roots Blog](https://roots.io/blog/)
-- Subscribe to the [Roots Newsletter](https://roots.io/newsletter/)
-# Permission fix test 
-# Uploads dir created 
-# Permission fix complete 
-# Permission fix complete 
-# Secret fix test 
+Setup Guide (on your GCP VM or any Linux host):
+
+Install Docker and Docker Compose:
+
+text
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-compose-plugin
+Clone and enter the monitoring folder:
+
+text
+git clone https://github.com/juhi0589/Bedrock-Project.git
+cd Bedrock-Project/monitoring
+Start all services with Docker Compose (requires sudo unless your user is in the docker group):
+
+text
+sudo docker compose up -d
+Access the services (from anywhere if GCP firewall is open):
+
+Grafana: http://<VM-IP>:3000
+
+Prometheus: http://<VM-IP>:9090
+
+Default Grafana login: admin / admin (change this after first login).
+
+🔥 Note on Firewall/Cloud Access
+On GCP, firewall rules must allow inbound TCP on 3000 (Grafana) and 9090 (Prometheus).
+
+See the Google Cloud Console "VPC network > Firewall" for port settings.
+
+Example: Grafana at http://34.6.110.173:3000 and Prometheus at http://34.6.110.173:9090.
+
+💡 Tips
+Use sudo with all Docker/Docker Compose commands unless your user is explicitly added to the docker group.
+
+To avoid sudo each time: sudo usermod -aG docker $USER then log out and back in.
+
+📊 Dashboards & Provisioning
+Dashboards (JSON) and provisioning YAMLs are under monitoring/dashboards/ and monitoring/provisioning/
+
+Metrics, Node, Blackbox, and HTTP health are preconfigured
+
+All dashboards auto-load in Grafana at first launch
