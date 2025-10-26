@@ -1,0 +1,53 @@
+{
+  "id": null,
+  "title": "Observability Demo",
+  "uid": "obs-demo",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "gauge",
+      "title": "CPU Usage % (Node Exporter)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Memory Usage (Bytes)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "legendFormat": "{{instance}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "App HTTP Health (Blackbox)",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 4 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "probe_success{instance=\"http://34.6.110.173\"}",
+          "legendFormat": "UP",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["last"] }
+      }
+    }
+  ]
+}
